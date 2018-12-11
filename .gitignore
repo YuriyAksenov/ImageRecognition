@@ -2,3 +2,4 @@ Logs/*
 __pycache__
 mnist.pkl.gz
 \.vs/*
+comments.py
