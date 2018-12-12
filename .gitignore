@@ -4,3 +4,4 @@ mnist.pkl.gz
 \.vs/*
 comments.py
 HandTestImages/*
+Models/*
