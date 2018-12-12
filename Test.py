@@ -25,39 +25,49 @@ def predict(filename: str, y:int, net: Network):
     
     # read image into matrix.
     m =  cv2.imread('./HandTestImages/0.png')
+    # m= [item[0] for item in m]
+    # m = cv2.bitwise_not(m)
     
     # get image properties.
-    h,w = np.shape(m)
+    (h, w, _) = np.shape(m)
     
     # iterate over the entire image.
     x = []
     for py in range(0,h):
         for px in range(0,w):
-            print (m[py][px])
-            x.append(px)
-    x = np.array(x)
+            #print (m[py][px][0])
+            x.append(m[py][px][0])
+        #print (m[py][0])
+    
+    x = np.array(x, dtype=float) /255
     y = y
-    result = net.feedforward(x)
-    print(np.argmax(result))
+    #result = net.feedforward(x)
+    data = []
+    data.append((x,y))
+    _, digits = net.accuracy(np.array(data))
+    digits = net.predicted_digits_accuracy(digits)
+    print(digits)
+    #print(np.argmax(result))
 
 
     
 
-netPath = "E:\\ITMO University\\Интеллектуальные системы и технологии\\Lab5\Lab\\Models\\model_5epochs.json";
+# netPath = "E:\\ITMO University\\Интеллектуальные системы и технологии\\Lab5\Lab\\Models\\model_5epochs.json";
+# net = load(netPath)
 
-# net = Network([784, 30, 10])
-# net.run(training_data, 5, 10, 3.0, test_data=test_data, monitor_evaluation_cost=True,
-#             monitor_evaluation_accuracy=True,
-#             monitor_training_cost=True,
-#             monitor_training_accuracy=True)
+# imgPath = "E:\\ITMO University\\Интеллектуальные системы и технологии\\Lab5\\Lab\\HandTestImages\\0.png"
 
-# save(net, "E:\ITMO University\Интеллектуальные системы и технологии\Lab5\Lab\Models\model_5epochs.json")
+# predict(imgPath, 7, net)
 
-net = load(netPath)
+net = Network([784, 30, 10])
+net.run(training_data, 5, 10, 3.0, test_data=test_data, monitor_evaluation_cost=True,
+            monitor_evaluation_accuracy=True,
+            monitor_training_cost=True,
+            monitor_training_accuracy=True)
 
-imgPath = "E:\\ITMO University\\Интеллектуальные системы и технологии\\Lab5\\Lab\\HandTestImages\\0.png"
+save(net, "E:\ITMO University\Интеллектуальные системы и технологии\Lab5\Lab\Models\model_5epochs.json")
 
-predict(imgPath, 7,net)
+
 
 
 
