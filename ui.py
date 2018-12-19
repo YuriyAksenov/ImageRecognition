@@ -1,32 +1,63 @@
 from tkinter import *
 from tkinter import filedialog as fd
 from PIL import ImageTk, Image
+from NetworkLoader import save, load
+from Network import Network
+from Network import *
+import MnistLoader
+training_data, validation_data, test_data = MnistLoader.load_data_wrapper()
+training_data = list(training_data)
 
+network:Network = None;
+output = None;
 
 def startUI():
     def readFile():
+        global network
         file_name = fd.askopenfilename()
-        f = open(file_name)
-        s = f.read()
-        print(s)
-        f.close()
+        network = load(file_name)
+        print(network)
 
     root = Tk()
     root.title("Neural Networks")
     root.geometry("800x600")
 
     def openImage():
+        global network
+        global output
         file_name = fd.askopenfilename()
         img=Image.open(file_name)
         img=img.resize((280,280), Image.ANTIALIAS)
         photoImage=ImageTk.PhotoImage(img)
-        label= Label(root, image=photoImage)
+        label = Label(root, image=photoImage)
         label.image=photoImage
-        label.place(relx=0.5, rely=0.25)
+        label.place(relx=0.5, rely=0.05)
+
+        predictedNumber = predict(file_name, network)
+        predictionOutputLabel['text'] = "Output: "+str(predictedNumber)
+        output="Output: "+str(predictedNumber)
+
+    # Starting network logic
+    def train():
+        global network
+        netLayers=list(map(int,str(layers.get()).split(',')))
+        print(netLayers)
+        network = Network(netLayers)
+        epochs = int(epochNumber.get())
+        minibatch = int(minibatchSize.get())
+        rate = float(learningRate.get())
+        print(layers, epochs, minibatch,rate)
+        network.run(training_data, epochs, minibatch, rate, test_data = test_data,monitor_evaluation_accuracy=True)
+    
+    def saveNet():
+       global network
+       save(network,"./epoch.json")
+    #
+    
     main_menu = Menu()
 
     file_menu = Menu(tearoff=0)
-    file_menu.add_command(label="Save")
+    file_menu.add_command(label="Save", command=saveNet)
     file_menu.add_command(label="Open file for prediction", command=openImage)
     file_menu.add_command(label="Import net config", command=readFile)
 
@@ -36,20 +67,11 @@ def startUI():
                          background="#555",
                          foreground="#ccc",
                          font="16",
-                         width=27
-                         # command=train
+                         width=27,
+                         command=train
                          )
     trainButton.place(relx=0.02, rely=0.0)
-
-    predictButton = Button(text="Predict",
-                           background="#555",
-                           foreground="#ccc",
-                           font="16",
-                           width=27
-                           # command=predict
-                           )
-    predictButton.place(relx=0.5, rely=0.0)
-
+   
     # Layers input
     layers = StringVar()
     layersLabel = Label(text="Comma separated layers", justify="right")
@@ -78,8 +100,10 @@ def startUI():
     learningRateInput = Entry(textvariable=learningRate)
     learningRateInput.place(relx=.34, rely=.22, anchor="c")
 
-    # Prediction output
-    predictionOutputLabel = Label(text="Output:", justify="right")
-    predictionOutputLabel.place(relx=.5, rely=.15)
+    # Prediction output    
+    predictionOutputLabel = Label(text=output, justify="right")
+    predictionOutputLabel.place(relx=.5, rely=.02)
     root.config(menu=main_menu)
     root.mainloop()
+
+    
