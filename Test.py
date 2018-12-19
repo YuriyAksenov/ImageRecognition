@@ -10,39 +10,6 @@ from Network import Network, vectorized_result
 from NetworkLoader import save, load
 
 
-
-def predict(filename: str, net: Network):
-
-    import cv2
-    import numpy as np
-
-    import os.path
-    isExist = os.path.isfile(filename) 
-    if(isExist):
-        print("exist")
-    else:
-        print("not exist")
-    
-    m =  cv2.imread('./HandTestImages/0.png')
-
-    # get image properties.
-    (h, w, _) = np.shape(m)
-    
-    # iterate over the entire image.
-    x = []
-    for py in range(0,h):
-        for px in range(0,w):
-            x.append(m[py][px][0])
-
-    x = np.array([np.array([item], dtype=float) for item in x])
-    x = 1 - x / 255 
-
-    result = net.feedforward(x)
-    print(np.argmax(result))
-
-
-    
-
 netPath = "E:\\ITMO University\\Интеллектуальные системы и технологии\\Lab5\Lab\\Models\\model_5epochs.json";
 net = load(netPath)
 
@@ -58,9 +25,13 @@ net = load(netPath)
 
 imgPath = "E:\\ITMO University\\Интеллектуальные системы и технологии\\Lab5\\Lab\\HandTestImages\\0.png"
 
-predict(imgPath, net)
+#predict(imgPath, net)
 
 save(net, "E:\ITMO University\Интеллектуальные системы и технологии\Lab5\Lab\Models\model_5epochs.json")
+
+from ui  import *
+net = ""
+startUI()
 
 
 

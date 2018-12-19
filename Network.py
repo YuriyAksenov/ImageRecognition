@@ -217,3 +217,33 @@ def sigmoid(z):
 def sigmoid_prime(z):
     """Derivative of the sigmoid function."""
     return sigmoid(z)*(1-sigmoid(z))
+
+def predict(filename: str, net: Network):
+    
+    import cv2
+    import numpy as np
+
+    import os.path
+    isExist = os.path.isfile(filename) 
+    if(isExist):
+        print("exist")
+    else:
+        print("not exist")
+    m = filename.split('/')[-1]
+    m =  cv2.imread('./HandTestImages/'+str(m))
+
+    # get image properties.
+    (h, w, _) = np.shape(m)
+    
+    # iterate over the entire image.
+    x = []
+    for py in range(0,h):
+        for px in range(0,w):
+            x.append(m[py][px][0])
+
+    x = np.array([np.array([item], dtype=float) for item in x])
+    x = 1 - x / 255 
+
+    result = net.feedforward(x)
+    print(result)
+    return np.argmax(result)
