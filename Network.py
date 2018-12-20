@@ -3,14 +3,13 @@ import json
 import random
 import sys
 import numpy as np
-
+from Metrics import * 
 
 
 
 class Network:
 
     def __init__(self, sizes):
-        """sizes указывается сколько будет слоев и сколько нейронов там будет, например, [5,4,2] в первом слое входном - 4 в выходном 2"""
         self.num_layers = len(sizes)
         self.sizes = sizes
         self.biases = [np.random.randn(y, 1) for y in self.sizes[1:]] # гуасиановская инициализация байасов и весов случайными значениями. Байасы только для выхода из нейрона, поэтому для первого слоя нет байеса
@@ -18,7 +17,6 @@ class Network:
 
 
     def feedforward(self, a):
-        """Return the output of the network if ``a`` is input."""
         for b, w in zip(self.biases, self.weights):
             a = sigmoid(np.dot(w, a)+b)
         return a
@@ -29,25 +27,6 @@ class Network:
             monitor_evaluation_accuracy=False,
             monitor_training_cost=False,
             monitor_training_accuracy=False):
-        """Train the neural network using mini-batch stochastic gradient
-        descent.  The ``training_data`` is a list of tuples ``(x, y)``
-        representing the training inputs and the desired outputs.  The
-        other non-optional parameters are self-explanatory, as is the
-        regularization parameter ``lmbda``.  The method also accepts
-        ``evaluation_data``, usually either the validation or test
-        data.  We can monitor the cost and accuracy on either the
-        evaluation data or the training data, by setting the
-        appropriate flags.  The method returns a tuple containing four
-        lists: the (per-epoch) costs on the evaluation data, the
-        accuracies on the evaluation data, the costs on the training
-        data, and the accuracies on the training data.  All values are
-        evaluated at the end of each training epoch.  So, for example,
-        if we train for 30 epochs, then the first element of the tuple
-        will be a 30-element list containing the cost on the
-        evaluation data at the end of each epoch. Note that the lists
-        are empty if the corresponding flag is not set.
-
-        """
 
         training_data = list(training_data)
         n = len(training_data)
@@ -87,6 +66,12 @@ class Network:
                 evaluation_accuracy.append(accuracy)
                 print(self.predicted_digits_accuracy(predicted_digits))
                 print("Accuracy on evaluation data: {} / {}".format(accuracy, n_test))
+
+            conf = self.conf_matrix(test_data)
+            print(conf)
+            print(self.fscore(conf));
+
+            aplot_confusion_matrix(cm=np.array(conf), normalize=True, target_names=["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"], title="Confusion Matrix, Normalized")
             
             print("----------------------------------------")
 
@@ -94,13 +79,6 @@ class Network:
         return evaluation_cost, evaluation_accuracy, training_cost, training_accuracy
 
     def update_mini_batch(self, mini_batch, eta):
-        """Update the network's weights and biases by applying gradient
-        descent using backpropagation to a single mini batch.  The
-        ``mini_batch`` is a list of tuples ``(x, y)``, ``eta`` is the
-        learning rate, ``lmbda`` is the regularization parameter, and
-        ``n`` is the total size of the training data set.
-
-        """
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
         for x, y in mini_batch:
@@ -113,10 +91,6 @@ class Network:
                        for b, nb in zip(self.biases, nabla_b)]
 
     def backprop(self, x, y):
-        """Return a tuple ``(nabla_b, nabla_w)`` representing the
-        gradient for the cost function C_x.  ``nabla_b`` and
-        ``nabla_w`` are layer-by-layer lists of numpy arrays, similar
-        to ``self.biases`` and ``self.weights``."""
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
         # feedforward
@@ -147,33 +121,34 @@ class Network:
         return (nabla_b, nabla_w)
 
     def cost_derivative(self, output_activations, y):
-        """Return the vector of partial derivatives \partial C_x /
-        \partial a for the output activations."""
         return (output_activations-y)
+    
+    def conf_matrix(self, data, convert=False):
+        conf = np.zeros((10,10))
+        if convert:
+            results = [(np.argmax(self.feedforward(x)), np.argmax(y))
+                       for (x, y) in data]
+            
+        else:
+            results = [(np.argmax(self.feedforward(x)), y)
+                        for (x, y) in data]
+        conf = np.zeros((10,10))
+        for  (predicted, real) in results:
+            conf[predicted][real]+=1
+        return conf
+
+    def fscore(self, conf_matrix):
+        precisions = np.zeros(10)
+        recalls = np.zeros(10)
+        for i in range(0,10):
+            precisions[i] = conf_matrix[i][i] / sum(conf_matrix[i,:])
+            recalls[i] = conf_matrix[i][i] / sum(conf_matrix[:,i])
+
+        precision_av = sum(precisions) / len(precisions)
+        recall_av = sum(recalls) / len(recalls)
+        return 2*(precision_av*recall_av / (precision_av+recall_av))
 
     def accuracy(self, data, convert=False):
-        """Return the number of inputs in ``data`` for which the neural
-        network outputs the correct result. The neural network's
-        output is assumed to be the index of whichever neuron in the
-        final layer has the highest activation.
-
-        The flag ``convert`` should be set to False if the data set is
-        validation or test data (the usual case), and to True if the
-        data set is the training data. The need for this flag arises
-        due to differences in the way the results ``y`` are
-        represented in the different data sets.  In particular, it
-        flags whether we need to convert between the different
-        representations.  It may seem strange to use different
-        representations for the different data sets.  Why not use the
-        same representation for all three data sets?  It's done for
-        efficiency reasons -- the program usually evaluates the cost
-        on the training data and the accuracy on other data sets.
-        These are different types of computations, and using different
-        representations speeds things up.  More details on the
-        representations can be found in
-        mnist_loader.load_data_wrapper.
-
-        """
         if convert:
             results = [(np.argmax(self.feedforward(x)), np.argmax(y))
                        for (x, y) in data]
@@ -201,21 +176,14 @@ class Network:
 
 #### Miscellaneous functions
 def vectorized_result(j):
-    """Return a 10-dimensional unit vector with a 1.0 in the j'th position
-    and zeroes elsewhere.  This is used to convert a digit (0...9)
-    into a corresponding desired output from the neural network.
-
-    """
     e = np.zeros((10, 1))
     e[j] = 1.0
     return e
 
 def sigmoid(z):
-    """The sigmoid function."""
     return 1.0/(1.0+np.exp(-z))
 
 def sigmoid_prime(z):
-    """Derivative of the sigmoid function."""
     return sigmoid(z)*(1-sigmoid(z))
 
 def predict(filename: str, net: Network):
@@ -230,7 +198,8 @@ def predict(filename: str, net: Network):
     else:
         print("not exist")
     m = filename.split('/')[-1]
-    m =  cv2.imread('./HandTestImages/'+str(m))
+    #m =  cv2.imread('./HandTestImages/'+str(m))
+    m =  cv2.imread('./HandTest/'+str(m))
 
     # get image properties.
     (h, w, _) = np.shape(m)
@@ -245,5 +214,7 @@ def predict(filename: str, net: Network):
     x = 1 - x / 255 
 
     result = net.feedforward(x)
-    print(result)
+    summ = sum(result)
+    for i in range(len(result)):
+        print(str(i) + " = " + str(result[i]/summ*100))
     return np.argmax(result)

@@ -106,4 +106,10 @@ def startUI():
     root.config(menu=main_menu)
     root.mainloop()
 
+    # # gui
+
+    canv = Canvas(self, bg="white")  # Создаем поле для рисования, устанавливаем белый фон
+    canv.grid(row=2, column=0, columnspan=7,
+                       padx=5, pady=5, sticky=E+W+S+N)
+
     
